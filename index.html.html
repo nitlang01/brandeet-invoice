@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Brandeet — Invoice Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Montserrat:wght@400;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #000000;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  min-height: 100vh;
+}
+
+/* ══ FORM PANEL ══ */
+.panel {
+  background: #000000;
+  color: #eee;
+  padding: 28px 24px;
+  overflow-y: auto;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+.panel-logo {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+.panel-logo span.dot-b { color: #e53935; }
+.panel-sub-txt { font-size: 10px; color: #ffffff; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 24px; margin-top: 2px; }
+
+.sec-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #e53935;
+  border-bottom: 1px solid #2e2e2e;
+  padding-bottom: 5px;
+  margin: 18px 0 10px;
+}
+.f { margin-bottom: 9px; }
+.f label { display: block; font-size: 10px; color: #666; margin-bottom: 3px; }
+.f input, .f textarea, .f select {
+  width: 100%;
+  background: #242424;
+  border: 1px solid #333;
+  color: #eee;
+  padding: 7px 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color .15s;
+}
+.f input:focus, .f textarea:focus { border-color: #e53935; }
+.f textarea { resize: vertical; min-height: 48px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* item blocks */
+.iblock { background: #242424; border: 1px solid #333; border-radius: 4px; padding: 9px; margin-bottom: 7px; position: relative; }
+.iblock .f input { background: #1a1a1a; border-color: #2a2a2a; }
+.igrid { display: grid; grid-template-columns: 1fr 55px 65px; gap: 7px; }
+.irm { position: absolute; top: 7px; right: 8px; background: none; border: none; color: #e53935; cursor: pointer; font-size: 13px; padding: 0; }
+
+.btn-add {
+  width: 100%; border: 1px dashed #333; background: none; color: #888;
+  padding: 8px; cursor: pointer; font-size: 11px; border-radius: 3px;
+  margin-top: 2px; font-family: 'Inter', sans-serif;
+  transition: color .15s, border-color .15s;
+}
+.btn-add:hover { color: #e53935; border-color: #e53935; }
+
+.dl-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 22px; }
+.btn-dl {
+  padding: 11px; border: none; cursor: pointer;
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; border-radius: 3px;
+  transition: opacity .15s;
+}
+.btn-dl:hover { opacity: .85; }
+.btn-pdf { background: #e53935; color: #fff; }
+.btn-doc { background: #242424; color: #e53935; border: 1px solid #e53935; }
+
+/* ══ PREVIEW ══ */
+.preview-wrap {
+  padding: 36px 28px;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* ══ INVOICE DOCUMENT — EXACT REPLICA ══ */
+#invoice-doc {
+  background: #fff;
+  width: 794px;
+  min-height: 1122px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.4);
+  font-family: 'Inter', sans-serif;
+  color: #111;
+  position: relative;
+}
+
+/* ── TOP SECTION ── */
+.inv-top {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 0;
+  padding: 40px 48px 0 40px;
+  margin-bottom: 0;
+}
+
+/* Left black box */
+.inv-left-box {
+  background: #111;
+  color: #fff;
+  padding: 28px 28px 28px 28px;
+  min-height: 220px;
+}
+
+/* Logo area */
+.inv-logo-wrap { margin-bottom: 18px; }
+.inv-logo-name {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+/* The colored dots above "r" */
+.logo-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: 1px;
+  position: relative;
+  top: -8px;
+}
+.logo-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.logo-dot.r { background: #e53935; }
+.logo-dot.y { background: #FFD600; }
+.logo-dot.b { background: #1565C0; }
+
+.inv-logo-sub {
+  font-size: 9.5px;
+  color: #aaa;
+  letter-spacing: 0.5px;
+  margin-top: 3px;
+  text-align: center;
+}
+
+.inv-dotted-line {
+  border: none;
+  border-top: 1.5px dotted #555;
+  margin: 14px 0;
+}
+
+.inv-meta-row { margin-bottom: 10px; display: grid; grid-template-columns: 72px 1fr; }
+.inv-meta-row .meta-key { font-size: 12px; color: #bbb; font-weight: 400; }
+.inv-meta-row .meta-val { font-size: 12px; color: #fff; font-weight: 500; }
+
+/* Right side: INVOICE title + payment block */
+.inv-right { padding-left: 32px; padding-top: 0; }
+
+.inv-title-text {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 72px;
+  font-weight: 900;
+  color: #111;
+  letter-spacing: -3px;
+  line-height: 1;
+  margin-bottom: 18px;
+}
+
+/* Grey payment box */
+.inv-pay-box {
+  background: #e8e8e8;
+  padding: 14px 20px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+.inv-pay-name { font-size: 13px; color: #333; margin-bottom: 4px; }
+.inv-pay-accnum {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+.inv-pay-bank { font-size: 13px; color: #555; margin-top: 4px; }
+
+/* Invoice number line */
+.inv-number-line { font-size: 13px; color: #333; margin-bottom: 10px; }
+
+/* Red dot note */
+.inv-note-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #333;
+  line-height: 1.45;
+}
+.inv-red-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #e53935;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+/* ── TABLE SECTION ── */
+.inv-table-wrap { padding: 32px 40px 0; }
+
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inv-table thead tr {
+  background: #111;
+}
+.inv-table thead th {
+  padding: 14px 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  text-align: left;
+  letter-spacing: 0.3px;
+}
+.inv-table thead th:not(:first-child) { text-align: right; }
+
+/* Alternating rows — grey/white */
+.inv-table tbody tr:nth-child(odd)  { background: #f2f2f2; }
+.inv-table tbody tr:nth-child(even) { background: #fff; }
+
+.inv-table tbody td {
+  padding: 13px 20px;
+  font-size: 13px;
+  color: #222;
+}
+.inv-table tbody td:not(:first-child) { text-align: right; }
+.inv-table tbody .empty-td {
+  text-align: center !important;
+  color: #aaa;
+  font-size: 12px;
+  padding: 24px;
+}
+
+/* ── TOTAL BAR ── */
+.inv-total-bar {
+  margin: 0 40px;
+  background: #f2f2f2;
+  border-top: 2px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 20px;
+}
+.inv-total-label {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+  color: #111;
+  letter-spacing: -0.5px;
+}
+.inv-total-amount {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+  color: #111;
+  letter-spacing: -0.5px;
+}
+
+/* ── FOOTER ── */
+.inv-footer {
+  position: absolute;
+  bottom: 32px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  font-size: 13px;
+  color: #333;
+}
+.inv-footer-item { display: flex; align-items: center; gap: 7px; }
+.footer-icon {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #111;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 11px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1080px) {
+  body { grid-template-columns: 1fr; }
+  .panel { position: static; height: auto; }
+  .preview-wrap { padding: 16px 8px; overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ FORM PANEL ══ -->
+<aside class="panel">
+  <img src="Brandeet logo.png" alt="Brandeet Logo"  width="300" height="85"/>
+  <div class="panel-sub-txt">Invoice Generator</div>
+
+  <div class="sec-label">Invoice Details</div>
+  <div class="row2">
+    <div class="f"><label>Invoice Number</label><input id="inv-num" value="00002026"/></div>
+    <div class="f">
+      <label>Currency</label>
+      <select id="inv-cur">
+        <option value="₦">₦ NGN</option>
+        <option value="$">$ USD</option>
+        <option value="£">£ GBP</option>
+        <option value="€">€ EUR</option>
+      </select>
+    </div>
+  </div>
+  <div class="row2">
+    <div class="f"><label>Date</label><input type="date" id="inv-date"/></div>
+    <div class="f"><label>Due Date</label><input type="text" id="inv-due" placeholder="e.g. 10th April, 2026"/></div>
+  </div>
+
+  <div class="sec-label">Bill To</div>
+  <div class="f"><label>Client Name</label><input id="to-name" placeholder="Client Name"/></div>
+
+  <div class="sec-label">Payment / Bank Details</div>
+  <div class="f"><label>Account Name</label><input id="bank-name" placeholder="Account Name"/></div>
+  <div class="f"><label>Account Number</label><input id="bank-num" placeholder="0000000000"/></div>
+  <div class="f"><label>Bank</label><input id="bank-bank" placeholder="Bank Name"/></div>
+
+  <div class="sec-label">Note (shown with red dot)</div>
+  <div class="f"><textarea id="inv-note">Please forward receipts for confirmation, Thanks for your patronage.</textarea></div>
+
+  <div class="sec-label">Services / Items</div>
+  <div id="items-list"></div>
+  <button class="btn-add" onclick="addItem()">+ Add Line Item</button>
+
+  <div class="sec-label">Contact Footer</div>
+  <div class="row2">
+    <div class="f"><label>Email</label><input id="from-email" value="brandeet095@gmail.com"/></div>
+    <div class="f"><label>Phone</label><input id="from-phone" value="+237(0)707 587 0087"/></div>
+  </div>
+
+  <div class="dl-row">
+    <button class="btn-dl btn-pdf" id="pdf-btn" onclick="downloadPDF()">↓ Download PDF</button>
+    <button class="btn-dl btn-doc" onclick="downloadDOC()">↓ Download DOC</button>
+  </div>
+</aside>
+
+<!-- ══ INVOICE PREVIEW ══ -->
+<main class="preview-wrap">
+  <div id="invoice-doc">
+
+    <!-- TOP: left black box + right invoice title -->
+    <div class="inv-top">
+
+      <!-- LEFT BLACK BOX -->
+      <div class="inv-left-box">
+        <div class="inv-logo-wrap">
+          <img src="Brandeet logo.png" alt="Brandeet Logo" width="180" height="50"/>
+        </div>
+
+        <hr class="inv-dotted-line"/>
+
+        <div class="inv-meta-row">
+          <span class="meta-key">Date:</span>
+          <span class="meta-val" id="prev-date">—</span>
+        </div>
+        <div class="inv-meta-row">
+          <span class="meta-key">Due Date:</span>
+          <span class="meta-val" id="prev-due">—</span>
+        </div>
+        <div class="inv-meta-row">
+          <span class="meta-key">To:</span>
+          <span class="meta-val" id="prev-to">—</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: INVOICE heading + pay box + note -->
+      <div class="inv-right">
+        <div class="inv-title-text">INVOICE</div>
+
+        <div class="inv-pay-box">
+          <div class="inv-pay-name" id="prev-bank-name">Account Name</div>
+          <div class="inv-pay-accnum" id="prev-bank-num">0000000000</div>
+          <div class="inv-pay-bank" id="prev-bank-bank">Bank Name</div>
+        </div>
+
+        <div class="inv-number-line">Invoice Number: <strong id="prev-inv-num">03042026</strong></div>
+
+        <div class="inv-note-line">
+          <div class="inv-red-dot"></div>
+          <div id="prev-note">Please forward receipts for confirmation, Thanks for your patronage.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="inv-table-wrap">
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th id="th-rate">Rate (₦)</th>
+            <th>Unit</th>
+            <th id="th-sub">Subtotal (₦)</th>
+          </tr>
+        </thead>
+        <tbody id="prev-items">
+          <tr><td class="empty-td" colspan="4">Add line items to see them here</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TOTAL BAR -->
+    <div class="inv-total-bar">
+      <div class="inv-total-label">TOTAL (<span id="cur-sym">₦</span>)</div>
+      <div class="inv-total-amount" id="prev-total">₦0</div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="inv-footer">
+      <div class="inv-footer-item">
+        <div class="footer-icon">✉</div>
+        <span id="prev-email">brandeet095@gmail.com</span>
+      </div>
+      <div class="inv-footer-item">
+        <div class="footer-icon">📞</div>
+        <span id="prev-phone">+237(0)707 587 0087</span>
+      </div>
+    </div>
+
+  </div><!-- /invoice-doc -->
+</main>
+
+<script>
+let items = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+  // set today
+  const today = new Date();
+  document.getElementById('inv-date').value = today.toISOString().split('T')[0];
+  addItem();
+  document.querySelectorAll('input,textarea,select').forEach(el => el.addEventListener('input', render));
+  render();
+});
+
+function addItem() {
+  items.push({ id: Date.now(), name: '', qty: 1, rate: 0 });
+  renderItemForm();
+  render();
+}
+
+function removeItem(id) {
+  items = items.filter(i => i.id !== id);
+  renderItemForm();
+  render();
+}
+
+function setItem(id, field, val) {
+  const i = items.find(x => x.id === id);
+  if (!i) return;
+  i[field] = (field === 'rate' || field === 'qty') ? (parseFloat(val) || 0) : val;
+  render();
+}
+
+function renderItemForm() {
+  document.getElementById('items-list').innerHTML = items.map(item => `
+    <div class="iblock">
+      <button class="irm" onclick="removeItem(${item.id})">✕</button>
+      <div class="f" style="margin-bottom:7px">
+        <label>Description</label>
+        <input value="${esc(item.name)}" placeholder="e.g. Custom Mug"
+          oninput="setItem(${item.id},'name',this.value)"/>
+      </div>
+      <div class="igrid">
+        <div class="f"><label>Rate (₦)</label>
+          <input type="number" value="${item.rate}" min="0"
+            oninput="setItem(${item.id},'rate',this.value)"/>
+        </div>
+        <div class="f"><label>Qty</label>
+          <input type="number" value="${item.qty}" min="1"
+            oninput="setItem(${item.id},'qty',this.value)"/>
+        </div>
+        <div class="f"><label>Subtotal</label>
+          <input readonly value="${fmtNum(item.rate * item.qty)}" style="opacity:.5"/>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+
+function v(id) { return (document.getElementById(id)||{}).value || ''; }
+
+function fmtNum(n) {
+  return Number(n).toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function fmtCur(n) {
+  const c = v('inv-cur') || '₦';
+  return c + fmtNum(n);
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y,m,day] = d.split('-');
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const ord = (n) => {
+    const s = ['th','st','nd','rd'], v = +n % 100;
+    return n + (s[(v-20)%10] || s[v] || s[0]);
+  };
+  return `${ord(+day)} ${months[+m-1]}, ${y}`;
+}
+
+function render() {
+  const cur = v('inv-cur') || '₦';
+  document.getElementById('cur-sym').textContent = cur;
+  document.getElementById('th-rate').textContent = `Rate (${cur})`;
+  document.getElementById('th-sub').textContent  = `Subtotal (${cur})`;
+
+  // left box
+  document.getElementById('prev-date').textContent = fmtDate(v('inv-date'));
+  document.getElementById('prev-due').textContent  = v('inv-due') || '—';
+  document.getElementById('prev-to').textContent   = v('to-name') || '—';
+
+  // right box
+  document.getElementById('prev-bank-name').textContent = v('bank-name') || 'Account Name';
+  document.getElementById('prev-bank-num').textContent  = v('bank-num')  || '0000000000';
+  document.getElementById('prev-bank-bank').textContent = v('bank-bank') || 'Bank Name';
+  document.getElementById('prev-inv-num').textContent   = v('inv-num')   || '—';
+  document.getElementById('prev-note').textContent      = v('inv-note')  || '';
+
+  // table
+  const filled = items.filter(i => i.name);
+  document.getElementById('prev-items').innerHTML = filled.length
+    ? filled.map(i => `<tr>
+        <td>${esc(i.name)}</td>
+        <td>${fmtNum(i.rate)}</td>
+        <td>1</td>
+        <td>${fmtNum(i.rate * i.qty)}</td>
+      </tr>`).join('')
+    : `<tr><td class="empty-td" colspan="4">Add line items to see them here</td></tr>`;
+
+  // total
+  const total = items.reduce((s,i) => s + i.rate * i.qty, 0);
+  document.getElementById('prev-total').textContent = fmtCur(total);
+
+  // footer
+  document.getElementById('prev-email').textContent = v('from-email');
+  document.getElementById('prev-phone').textContent = v('from-phone');
+}
+
+/* ── PDF ── */
+async function downloadPDF() {
+  const btn = document.getElementById('pdf-btn');
+  btn.textContent = 'Generating…'; btn.disabled = true;
+  try {
+    const el = document.getElementById('invoice-doc');
+    const canvas = await html2canvas(el, { scale: 2.5, useCORS: true, backgroundColor: '#ffffff' });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'px', format: 'a4', orientation: 'portrait' });
+    const pw = pdf.internal.pageSize.getWidth();
+    const ph = canvas.height * pw / canvas.width;
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pw, ph);
+    pdf.save(`Brandeet-Invoice-${v('inv-num') || 'draft'}.pdf`);
+  } catch(e) { alert('PDF generation failed. Try again.'); }
+  btn.textContent = '↓ Download PDF'; btn.disabled = false;
+}
+
+/* ── DOC ── */
+function downloadDOC() {
+  const cur = v('inv-cur') || '₦';
+  const total = items.reduce((s,i) => s + i.rate * i.qty, 0);
+  const rows = items.filter(i => i.name).map(i =>
+    `<tr style="background:${items.indexOf(i)%2===0?'#f2f2f2':'#fff'}">
+      <td style="padding:12px 18px;font-size:13px;">${esc(i.name)}</td>
+      <td style="padding:12px 18px;font-size:13px;text-align:right;">${fmtNum(i.rate)}</td>
+      <td style="padding:12px 18px;font-size:13px;text-align:right;">1</td>
+      <td style="padding:12px 18px;font-size:13px;text-align:right;">${fmtNum(i.rate * i.qty)}</td>
+    </tr>`).join('');
+
+  const html = `<html><head><meta charset="utf-8"/>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 0; margin: 0; color: #111; }
+    table { width: 100%; border-collapse: collapse; }
+  </style>
+  </head><body>
+  <table style="margin-bottom:0;">
+    <tr>
+      <td style="width:42%;background:#111;padding:28px;vertical-align:top;">
+        <div style="font-family:Arial,sans-serif;font-size:26px;font-weight:900;color:#fff;letter-spacing:-1px;">brandeet</div>
+        <div style="font-size:9px;color:#aaa;letter-spacing:1px;text-transform:uppercase;margin-top:3px;margin-bottom:16px;">Design &amp; Print Agency</div>
+        <hr style="border:none;border-top:1.5px dotted #555;margin:14px 0;"/>
+        <table style="width:100%;">
+          <tr><td style="font-size:12px;color:#bbb;width:72px;padding:0 0 8px;">Date:</td><td style="font-size:12px;color:#fff;font-weight:500;padding:0 0 8px;">${fmtDate(v('inv-date'))}</td></tr>
+          <tr><td style="font-size:12px;color:#bbb;padding:0 0 8px;">Due Date:</td><td style="font-size:12px;color:#fff;font-weight:500;padding:0 0 8px;">${v('inv-due') || '—'}</td></tr>
+          <tr><td style="font-size:12px;color:#bbb;padding:0;">To:</td><td style="font-size:12px;color:#fff;font-weight:500;">${v('to-name') || '—'}</td></tr>
+        </table>
+      </td>
+      <td style="vertical-align:top;padding:28px 36px;">
+        <div style="font-family:Arial,sans-serif;font-size:64px;font-weight:900;letter-spacing:-3px;line-height:1;margin-bottom:16px;">INVOICE</div>
+        <div style="background:#e8e8e8;padding:14px 18px;margin-bottom:12px;text-align:center;">
+          <div style="font-size:13px;color:#333;">${v('bank-name')}</div>
+          <div style="font-family:Arial,sans-serif;font-size:26px;font-weight:900;letter-spacing:1px;">${v('bank-num')}</div>
+          <div style="font-size:13px;color:#555;margin-top:4px;">${v('bank-bank')}</div>
+        </div>
+        <div style="font-size:13px;color:#333;margin-bottom:10px;">Invoice Number: <strong>${v('inv-num')}</strong></div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#e53935;display:inline-block;margin-top:3px;flex-shrink:0;"></span>
+          <span style="font-size:12px;color:#333;">${v('inv-note')}</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+  <table style="margin:24px 0 0;">
+    <thead>
+      <tr style="background:#111;">
+        <th style="padding:13px 18px;color:#fff;font-size:12px;font-weight:500;text-align:left;">Description</th>
+        <th style="padding:13px 18px;color:#fff;font-size:12px;font-weight:500;text-align:right;">Rate (${cur})</th>
+        <th style="padding:13px 18px;color:#fff;font-size:12px;font-weight:500;text-align:right;">Unit</th>
+        <th style="padding:13px 18px;color:#fff;font-size:12px;font-weight:500;text-align:right;">Subtotal (${cur})</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows || '<tr style="background:#f2f2f2"><td colspan="4" style="padding:20px;text-align:center;color:#aaa;font-size:12px;">No items</td></tr>'}
+    </tbody>
+  </table>
+  <table>
+    <tr style="background:#f2f2f2;border-top:2px solid #ddd;">
+      <td style="padding:20px 18px;font-family:Arial,sans-serif;font-size:26px;font-weight:900;letter-spacing:-0.5px;">TOTAL (${cur})</td>
+      <td style="padding:20px 18px;font-family:Arial,sans-serif;font-size:26px;font-weight:900;letter-spacing:-0.5px;text-align:right;">${fmtCur(total)}</td>
+    </tr>
+  </table>
+  <div style="text-align:center;padding:28px;font-size:13px;color:#333;margin-top:40px;">
+    <span style="margin-right:20px;">✉ ${v('from-email')}</span>
+    <span>📞 ${v('from-phone')}</span>
+  </div>
+  </body></html>`;
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Brandeet-Invoice-${v('inv-num') || 'draft'}.doc`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
